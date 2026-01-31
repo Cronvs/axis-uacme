@@ -1,27 +1,15 @@
-ARG ARCH=aarch64
-FROM axisecp/acap-computer-vision-sdk:latest-${ARCH}
+ARG ARCH=armv7hf
+ARG VERSION=12.8.0
+ARG UBUNTU_VERSION=24.04
+ARG REPO=axisecp
+ARG SDK=acap-native-sdk
 
-# Install build dependencies and runtime tools
-RUN apt-get update && apt-get install -y \
-    gcc \
-    make \
-    pkg-config \
-    libcurl4-openssl-dev \
-    libssl-dev \
-    uacme \
-    ca-certificates \
- && rm -rf /var/lib/apt/lists/*
+FROM ${REPO}/${SDK}:${VERSION}-${ARCH}-ubuntu${UBUNTU_VERSION}
 
-# Setup App Directory
-WORKDIR /app
-COPY app /app
+# Copy all local files into the container image
+COPY ./app /opt/app/
+WORKDIR /opt/app
 
-# Compile the C application
-# We link against libcurl for VAPIX requests
-RUN gcc -o acme_daemon main.c -lcurl
-
-# Setup storage
-RUN mkdir -p /etc/ssl/uacme/private
-RUN chmod +x hook.sh
-
-CMD ["./acme_daemon"]
+# Build the .eap application file
+# The SDK uses a specific layout; we copy our files to the expected build output
+RUN . /opt/axis/acapsdk/environment-setup* && acap-build . -a "lego" -a "update.sh"

@@ -1,0 +1,55 @@
+#!/bin/sh
+
+APP_NAME="lego_acap"
+INSTALL_DIR="/usr/local/packages/$APP_NAME"
+PERSISTENT_DIR="$INSTALL_DIR/localdata"
+LEGO_BIN="$INSTALL_DIR/lego"
+UPDATE_SCRIPT="$INSTALL_DIR/update.sh"
+. "$PERSISTENT_DIR/config"
+
+export API_USER API_PASS PATH=$PATH:$INSTALL_DIR
+
+# Helper function to send logs to Axis System Log
+log() {
+    logger -t "$APP_NAME" -p user.info "$1"
+}
+
+log "Service started. Architecture: $(uname -m)"
+
+# 1. Ensure Permissions
+chmod +x "$UPDATE_SCRIPT"
+chmod +x "$LEGO_BIN"
+
+# 2. Initial Run Check
+if [ ! -d "$PERSISTENT_DIR/certificates" ]; then
+    log "No certificates found. Starting initial issuance..."
+    
+    # We pipe stderr (2) to stdout (&1) and then to logger
+    "$LEGO_BIN" --dns rfc2136 \
+        --path "$PERSISTENT_DIR" \
+        --server "${directory}" \
+        --accept-tos \
+        --eab "${eab}" \
+        --domains="${domain}" \
+        --run-hook="$UPDATE_SCRIPT" \
+        run 2>&1 | logger -t "$APP_NAME"
+else
+    log "Certificates found. Entering renewal loop."
+fi
+
+# 3. Daemon Loop
+while true; do
+    # Sleep 24 hours
+    sleep 43200
+    
+    log "Checking for certificate renewal..."
+    
+    until "$LEGO_BIN" --dns rfc2136 \
+            --path "$PERSISTENT_DIR" \
+            --server "${directory}" \
+            --domains="${domain}" \
+            --renew-hook="$UPDATE_SCRIPT" \
+            renew --days 1 2>&1 | logger -t "$APP_NAME"; do
+        sleep 1440
+    done
+done

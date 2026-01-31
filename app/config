@@ -1,0 +1,9 @@
+# acme directory
+directory=
+# eab key
+eab=
+# domain to issue to
+domains=
+### VAPIX credentials
+API_USER="root"
+API_PASS=
