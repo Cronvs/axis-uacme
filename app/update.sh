@@ -36,10 +36,10 @@ POSTFIX='
 soap() {
     echo "$(curl --silent --request POST --insecure \
       --anyauth \
-      --user "$API_USER:$API_PASS" \
+      --user "${API_USER}:${API_PASS}" \
       --header "Content-Type: application/xml" \
-        "http://$HOST/vapix/services" \
-      --data "$PREFIX$1$POSTFIX")"
+        "http://${HOST}/vapix/services" \
+      --data "${PREFIX}$1${POSTFIX}")"
 }
 
 
@@ -52,22 +52,22 @@ echo "Deploying new certificate to Axis Camera..."
 # We use the modern REST endpoint for certificate management.
 RESPONSE="$(soap '<tds:LoadCertificateWithPrivateKey xmlns="http://www.onvif.org/ver10/device/wsdl">
             <CertificateWithPrivateKey>
-                <tt:CertificateID>'"$CERT_ID"'</tt:CertificateID>
+                <tt:CertificateID>'"${CERT_ID}"'</tt:CertificateID>
                 <tt:Certificate>
-                    <tt:Data>'"$(cat "$LEGO_CERT_PATH")"'</tt:Data>
+                    <tt:Data>'"$(cat "${LEGO_CERT_PATH}")"'</tt:Data>
                 </tt:Certificate>
                 <tt:PrivateKey>
-                    <tt:Data>'"$(cat "$LEGO_KEY_PATH")"'</tt:Data>
+                    <tt:Data>'"$(cat "${LEGO_KEY_PATH}")"'</tt:Data>
                 </tt:PrivateKey>
             </CertificateWithPrivateKey>
         </tds:LoadCertificateWithPrivateKey>')"
 
-if echo "$RESPONSE" | grep -q "error"; then
-    echo "Error uploading certificate: $RESPONSE"
+if echo "${RESPONSE}" | grep -q "error"; then
+    echo "Error uploading certificate: ${RESPONSE}"
     exit 1
 fi
 
-echo "Certificate uploaded with ID: $CERT_ID"
+echo "Certificate uploaded with ID: ${CERT_ID}"
 
 # 3. Activate the Certificate (VAPIX Param API)
 # We set the Network.HTTPS.SSLCertificateId parameter to the new ID.
@@ -91,7 +91,7 @@ RESPONSE="$(soap '<aweb:SetWebServerTlsConfiguration xmlns="http://www.axis.com/
                 </aweb:Ciphers>
                 <aweb:CertificateSet>
                     <acert:Certificates>
-                        <acert:Id>'"$CERT_ID"'</acert:Id>
+                        <acert:Id>'"${CERT_ID}"'</acert:Id>
                     </acert:Certificates>
                     <acert:CACertificates />
                     <acert:TrustedCertificates />
@@ -99,10 +99,10 @@ RESPONSE="$(soap '<aweb:SetWebServerTlsConfiguration xmlns="http://www.axis.com/
             </Configuration>
         </aweb:SetWebServerTlsConfiguration>')"
 
-if echo "$RESPONSE" | grep -q "OK"; then
-    echo "Successfully activated certificate: $CERT_ID"
+if echo "${RESPONSE}" | grep -q "OK"; then
+    echo "Successfully activated certificate: ${CERT_ID}"
 else
-    echo "Error activating certificate: $RESPONSE"
+    echo "Error activating certificate: ${RESPONSE}"
     exit 1
 fi
 
@@ -110,12 +110,12 @@ fi
 # You might want to delete certificates older than the current one here
 # using the 'remove' action in the API, or manage it manually.
 RESPONSE="$(soap '<tds:DeleteCertificates xmlns="http://www.onvif.org/ver10/device/wsdl">
-'"$OLD_CERT_ID"'
+'"${OLD_CERT_ID}"'
         </tds:DeleteCertificates>')"
 
-if echo "$RESPONSE" | grep -q "OK"; then
-    echo "Successfully deleted certificates: $(echo "$OLD_CERT_ID" | grep -oP '(?<=CertificateID>)[^<]+')"
+if echo "${RESPONSE}" | grep -q "OK"; then
+    echo "Successfully deleted certificates: $(echo "${OLD_CERT_ID}" | grep -oP '(?<=CertificateID>)[^<]+')"
 else
-    echo "Error deleting certificate: $RESPONSE"
+    echo "Error deleting certificate: ${RESPONSE}"
     exit 1
 fi
