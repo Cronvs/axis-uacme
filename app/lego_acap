@@ -3,7 +3,19 @@ APP_NAME="lego_acap"
 
 DIRECTORY="$(parhandclient get "root.${APP_NAME}.directory")"
 EAB="$(parhandclient get "root.${APP_NAME}.eab")"
+KID="$(parhandclient get "root.${APP_NAME}.kid")"
+HMAC="$(parhandclient get "root.${APP_NAME}.hmac")"
 DOMAIN="$(parhandclient get "root.${APP_NAME}.domain")"
+
+if [ "${EAB}" = "yes" ] && [ "${KID}" != "-" ] && [ "${HMAC}" != "-" ]; then
+    EAB="--eab"
+    KID="--kid=${KID}"
+    HMAC="--hmac=${HMAC}"
+else
+    EAB=""
+    KID=""
+    HMAC=""
+fi
 
 INSTALL_DIR="/usr/local/packages/${APP_NAME}"
 PERSISTENT_DIR="${INSTALL_DIR}/localdata"
@@ -30,7 +42,9 @@ if [ ! -d "${PERSISTENT_DIR}/certificates" ]; then
         --path="${PERSISTENT_DIR}" \
         --server="${DIRECTORY}" \
         --accept-tos \
-        --eab="${EAB}" \
+        ${EAB} \
+        ${KID} \
+        ${HMAC} \
         --domains="${DOMAIN}" \
         --run-hook="${UPDATE_SCRIPT}" \
         run 2>&1 | logger -t "${APP_NAME}"

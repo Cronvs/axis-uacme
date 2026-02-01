@@ -22,7 +22,17 @@
                 },
                 {
                     "name": "eab",
-                    "default": "",
+                    "default": "no",
+                    "type": "bool"
+                },
+                {
+                    "name": "kid",
+                    "default": "-",
+                    "type": "string"
+                },
+                {
+                    "name": "hmac",
+                    "default": "-",
                     "type": "string"
                 },
                 {
