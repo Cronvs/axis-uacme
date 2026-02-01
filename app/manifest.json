@@ -13,5 +13,34 @@
             "runMode": "never",
             "version": "1.0.0"
         },
+        "configuration": {
+            "paramConfig": [
+                {
+                    "name": "directory",
+                    "default": "https://acme-v02.api.letsencrypt.org/directory",
+                    "type": "string"
+                },
+                {
+                    "name": "eab",
+                    "default": "",
+                    "type": "string"
+                },
+                {
+                    "name": "domain",
+                    "default": "example.local",
+                    "type": "string"
+                },
+                {
+                    "name": "user",
+                    "default": "root",
+                    "type": "string"
+                },
+                {
+                    "name": "password",
+                    "default": "password",
+                    "type": "string"
+                }
+            ]
+        }
     }
 }

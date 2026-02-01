@@ -11,8 +11,8 @@
 # Configuration
 # Use 'root' and your camera password. 
 # Since this runs locally, you might use a specific service account if available.
-#API_USER="root"
-#API_PASS="pass"
+API_USER="$(parhandclient get "root.${APP_NAME}.user")"
+API_PASS="$(parhandclient get "root.${APP_NAME}.password")"
 
 # Generate a unique ID for this certificate (e.g., lego-16788822)
 CERT_ID="lego-$(date +%s)"

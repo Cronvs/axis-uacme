@@ -1,19 +1,14 @@
 #!/bin/sh
-
-DIRECTORY=""
-EAB=""
-DOMAIN=""
-
-API_USER=""
-API_PASS=""
-
 APP_NAME="lego_acap"
+
+DIRECTORY="$(parhandclient get "root.${APP_NAME}.directory")"
+EAB="$(parhandclient get "root.${APP_NAME}.eab")"
+DOMAIN="$(parhandclient get "root.${APP_NAME}.domain")"
+
 INSTALL_DIR="/usr/local/packages/${APP_NAME}"
 PERSISTENT_DIR="${INSTALL_DIR}/localdata"
 LEGO_BIN="${INSTALL_DIR}/lego"
 UPDATE_SCRIPT="${INSTALL_DIR}/update.sh"
-
-export API_USER API_PASS PATH="${PATH}:${INSTALL_DIR}"
 
 # Helper function to send logs to Axis System Log
 log() {
