@@ -1,11 +1,15 @@
 {
-    "schemaVersion": "1.9.0",
+    "schemaVersion": "1.1",
     "acapPackageConf": {
         "setup": {
             "friendlyName": "lego_acap",
             "appName": "lego_acap",
             "vendor": "Cronvs",
             "embeddedSdkVersion": "3.0",
+            "user": {
+                "username": "sdk",
+                "group": "sdk"
+            },
             "runMode": "never",
             "version": "1.0.0"
         },
