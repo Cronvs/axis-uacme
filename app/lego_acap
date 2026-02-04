@@ -1,11 +1,17 @@
 #!/bin/sh
 APP_NAME="lego_acap"
 
+RFC2136_NAMESERVER="$(parhandclient get "root.${APP_NAME}.dns")"
+RFC2136_TSIG_KEY="$(parhandclient get "root.${APP_NAME}.key")"
+RFC2136_TSIG_ALGORITHM="$(parhandclient get "root.${APP_NAME}.algorithm")"
+RFC2136_TSIG_SECRET="$(parhandclient get "root.${APP_NAME}.secret")"
 DIRECTORY="$(parhandclient get "root.${APP_NAME}.directory")"
 EAB="$(parhandclient get "root.${APP_NAME}.eab")"
 KID="$(parhandclient get "root.${APP_NAME}.kid")"
 HMAC="$(parhandclient get "root.${APP_NAME}.hmac")"
 DOMAIN="$(parhandclient get "root.${APP_NAME}.domain")"
+
+LEGO_CA_CERTIFICATES="${DIRECTORY}/ca_cert.crt"
 
 if [ "${EAB}" = "yes" ] && [ "${KID}" != "-" ] && [ "${HMAC}" != "-" ]; then
     EAB="--eab"

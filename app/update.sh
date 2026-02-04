@@ -19,7 +19,7 @@ CERT_ID="lego-$(date +%s)"
 HOST="127.0.0.1"
 
 RESULT=''
-PREFIX='<SOAP-ENV:Envelope
+PREFIX1='<SOAP-ENV:Envelope
     xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
     xmlns:xs="http://www.w3.org/2001/XMLSchema"
     xmlns:tds="http://www.onvif.org/ver10/device/wsdl"
@@ -30,11 +30,22 @@ PREFIX='<SOAP-ENV:Envelope
     xmlns:SOAP-ENV="http://www.w3.org/2003/05/soap-envelope">
     <SOAP-ENV:Body>
         '
+PREFIX2='<SOAP-ENV:Envelope
+        xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+        xmlns:aweb="http://www.axis.com/vapix/ws/webserver"
+        xmlns:acert="http://www.axis.com/vapix/ws/cert"
+        xmlns:xs="http://www.w3.org/2001/XMLSchema"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+        xmlns:SOAP-ENV="http://www.w3.org/2003/05/soap-envelope">
+        <SOAP-ENV:Body>
+            '
+PREFIX="${PREFIX1}"
 POSTFIX='
     </SOAP-ENV:Body>
 </SOAP-ENV:Envelope>'
 soap() {
-    echo "$(curl --silent --request POST --insecure \
+    echo "$(curl --silent --request POST \
       --anyauth \
       --user "${API_USER}:${API_PASS}" \
       --header "Content-Type: application/xml" \
@@ -44,7 +55,7 @@ soap() {
 
 
 OLD_CERT_ID="$(soap '<tds:GetCertificates xmlns="http://www.onvif.org/ver10/device/wsdl" />' \
-            | grep -oP '(?<=CertificateID>)lego-[^<]+' | awk '{print "            <CertificateID>" $0 "</CertificateID>"}')"
+            | grep -oE 'CertificateID>lego-[^<]+' | sed 's/^/            </; s/$/<\/CertificateID>/')"
 
 echo "Deploying new certificate to Axis Camera..."
 
@@ -54,15 +65,15 @@ RESPONSE="$(soap '<tds:LoadCertificateWithPrivateKey xmlns="http://www.onvif.org
             <CertificateWithPrivateKey>
                 <tt:CertificateID>'"${CERT_ID}"'</tt:CertificateID>
                 <tt:Certificate>
-                    <tt:Data>'"$(cat "${LEGO_CERT_PATH}")"'</tt:Data>
+                    <tt:Data>'"$(openssl x509 -in "${LEGO_CERT_PATH}" -outform PEM | tail -n +2 | head -n -1)"'</tt:Data>
                 </tt:Certificate>
                 <tt:PrivateKey>
-                    <tt:Data>'"$(cat "${LEGO_KEY_PATH}")"'</tt:Data>
+                    <tt:Data>'"$(cat "${LEGO_CERT_KEY_PATH}" | tail -n +2 | head -n -1)"'</tt:Data>
                 </tt:PrivateKey>
             </CertificateWithPrivateKey>
         </tds:LoadCertificateWithPrivateKey>')"
 
-if echo "${RESPONSE}" | grep -q "error"; then
+if echo "${RESPONSE}" | grep -q "SOAP-ENV:Fault"; then
     echo "Error uploading certificate: ${RESPONSE}"
     exit 1
 fi
@@ -71,13 +82,12 @@ echo "Certificate uploaded with ID: ${CERT_ID}"
 
 # 3. Activate the Certificate (VAPIX Param API)
 # We set the Network.HTTPS.SSLCertificateId parameter to the new ID.
+PREFIX="${PREFIX2}"
 RESPONSE="$(soap '<aweb:SetWebServerTlsConfiguration xmlns="http://www.axis.com/vapix/ws/webserver">
             <Configuration>
                 <Tls>true</Tls>
                 <aweb:ConnectionPolicies>
                     <aweb:Admin>Https</aweb:Admin>
-                    <aweb:Operator>Https</aweb:Operator>
-                    <aweb:Viewer>Https</aweb:Viewer>
                 </aweb:ConnectionPolicies>
                 <aweb:Ciphers>
                     <acert:Cipher>ECDHE-ECDSA-AES128-GCM-SHA256</acert:Cipher>
@@ -99,23 +109,25 @@ RESPONSE="$(soap '<aweb:SetWebServerTlsConfiguration xmlns="http://www.axis.com/
             </Configuration>
         </aweb:SetWebServerTlsConfiguration>')"
 
-if echo "${RESPONSE}" | grep -q "OK"; then
-    echo "Successfully activated certificate: ${CERT_ID}"
-else
+if echo "${RESPONSE}" | grep -q "SOAP-ENV:Fault"; then
     echo "Error activating certificate: ${RESPONSE}"
     exit 1
 fi
 
+echo "Successfully activated certificate: ${CERT_ID}"
+
 # 4. (Optional) Cleanup Old Certificates
 # You might want to delete certificates older than the current one here
 # using the 'remove' action in the API, or manage it manually.
-RESPONSE="$(soap '<tds:DeleteCertificates xmlns="http://www.onvif.org/ver10/device/wsdl">
+if [ "x${OLD_CERT_ID}" != "x" ]; then
+    PREFIX="${PREFIX1}"
+    RESPONSE="$(soap '<tds:DeleteCertificates xmlns="http://www.onvif.org/ver10/device/wsdl">
 '"${OLD_CERT_ID}"'
         </tds:DeleteCertificates>')"
 
-if echo "${RESPONSE}" | grep -q "OK"; then
-    echo "Successfully deleted certificates: $(echo "${OLD_CERT_ID}" | grep -oP '(?<=CertificateID>)[^<]+')"
-else
-    echo "Error deleting certificate: ${RESPONSE}"
-    exit 1
+    if echo "${RESPONSE}" | grep -q "SOAP-ENV:Fault"; then
+        echo "Error deleting certificate: ${RESPONSE}"
+        exit 1
+    fi
+    echo "Successfully deleted certificates: $(echo "${OLD_CERT_ID}" | grep -oE 'lego-[^<]+')"
 fi
